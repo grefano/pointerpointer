@@ -1,3 +1,4 @@
+import { randomInt } from 'crypto'
 import express from 'express'
 const app = express()
 const serverUrl = 'C:/Users/USUARIO/documents/code/expressjs'
@@ -18,7 +19,7 @@ app.set('view engine', 'ejs')
 // html
 app.get('/', (req, res) => {
     console.log("here")
-    res.render('index')
+    res.render('index.ejs')
 })
 
 function checkImage(file) {
@@ -52,7 +53,7 @@ app.post('/api/img', (req, res) => {
                     dir:    Number(fileValuesList[2])
                 }
                 
-                if (qtd < 5){
+                if (qtd < 1 && randomInt(100) < 30){
                     console.log(`qtd images sending ${qtd}`)
                     validFiles.push({
                         url: `/imgs/${file}`,
