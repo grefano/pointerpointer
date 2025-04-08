@@ -1,31 +1,10 @@
-const img = document.getElementById('imgpointer')
+//const imgel = document.getElementById('imgpointer')
+const imgobj = {x:0, y:0, dir:0}
 const txt = document.getElementById('txtdebug')
 const container = document.getElementsByClassName('imgbox')[0]
 
-// img.src = data.imageUrl
-
-/*
-fetch('/api/img', {
-    body: blob()
-})
-.then(response => response.blob())
-.then((myBlob) => {
-    const url = URL.createObjectURL(myBlob)
-    img.src = url
-});
-*/
-var mousex = 0
-var mousey = 0 
-
-window.addEventListener('mousemove', function(e){
-    //console.log(`x: ${e.x} y: ${e.y}`)
-    mousex = e.x
-    mousey = e.y
-    
-    //console.log('uai')
-    
-})
-
+let img = -1
+let imgsOrdered = []
 
 async function getImg(){
 
@@ -43,17 +22,9 @@ async function getImg(){
     .then(response => response.json())
     .then(imagens => {
         console.log('response')
-
-        imagens.forEach(image => {
-            console.log(image.url)
-            const el = document.createElement('img')
-            el.src = image.url
-            el.className = 'imgpointer'
-            setupZoom(el)
-            
-            //img.src = image.url
-            container.appendChild(el)
-        });
+        chooseImages(imagens)
+        
+        
     })
     .catch(error => console.log(error))
     
@@ -62,44 +33,77 @@ async function getImg(){
 }
 
 
-
-
 getImg()
 
 
+function chooseImages(images) {
+    imgsOrdered = []
+    images.forEach(image => {
+        img = new Image()
+        img.src = image.url
 
-// zoom do deepseek
+        img.addEventListener('load', function(e){
+            let vw = Math.max(document.documentElement.clientWidth || 0, window.innerWidth || 0)
+            let vh = Math.max(document.documentElement.clientHeight || 0, window.innerHeight || 0)
 
-// Exemplo: Zoom em uma coordenada específica (x: 200px, y: 150px)
-function aplicarZoom(x, y, escala = 2) {
-    const rect = container.getBoundingClientRect();
-    const offsetX = x - rect.left;
-    const offsetY = y - rect.top;
+            console.log('chooseimages')
+            console.log(`w ${this.naturalWidth} h ${this.naturalHeight}`)
+            let scaleW = vw/this.naturalWidth
+            let scaleH = vh/this.naturalHeight
+            let scaleDiff = Math.abs(scaleW-scaleH)
 
-  // Calcula a posição do transform-origin
-    const originX = (offsetX / rect.width) * 100;
-    const originY = (offsetY / rect.height) * 100;
+            let orderedIndex = imgsOrdered.length
 
-    const image = document.getElementsByClassName('imgpointer')[0]
-    image.style.transform = 'none'
-    image.style.transformOrigin = `${originX}% ${originY}%`;
-    image.style.transform = `scale(${escala})`;
+            while(orderedIndex > 0 && imgsOrdered[orderedIndex-1].scaleDiff > scaleDiff){
+                orderedIndex--
+            }
+            e.scaleDiff = scaleDiff
+            e.x = image.x
+            e.y = image.y
+            e.dir = image.dir
+            imgsOrdered.splice(orderedIndex, 0, e)
+            console.log(`loaded ${JSON.stringify(e)}`)
+            console.log(`ordered list ${imgsOrdered[0].x}`)
+            
+        })
+        img.addEventListener('error', function(){
+            console.log(`erro ao carregar ${image.url}`)
+        })
+        
+        
 
+
+    });
+    console.log(`imgsOrdered ${imgsOrdered}`)
 }
 
-// Chamada de exemplo (zoom no clique)
+function createImage(image){
+    console.log('createimg')
+    console.log(image)
+    
+    console.log(`width ${image.naturalWidth}; height ${image.naturalHeight} file ${image.url}`)
+    // passando info da imagem para o objeto
+    imgobj.width = image.naturalWidth
+    imgobj.height = image.naturalHeight
+    imgobj.x = image.x/100
+    imgobj.y = image.y/100
+    imgobj.dir = image.dir
+    
+    // criando um elemento html com a imagem
+    const el = document.createElement('img')
+    el.src = image.url
+    el.className = 'imgpointer'
+    container.appendChild(el)
 
-
-/*
-document.getElementsByClassName('imgpointer')[0].addEventListener('mousedown', function() {
-    this.style.transformOrigin = '50% 50%';
-    this.style.transform = 'scale(2)';
-});
-*/
-
+    setupZoom(el)
+}
 
 function setupZoom(imgElement) {
     imgElement.addEventListener('mousedown', function(e) {
+        let vw = Math.max(document.documentElement.clientWidth || 0, window.innerWidth || 0)
+        let vh = Math.max(document.documentElement.clientHeight || 0, window.innerHeight || 0)
+
+
         const rect = this.getBoundingClientRect();
         const offsetX = e.clientX - rect.left;
         const offsetY = e.clientY - rect.top;
@@ -107,8 +111,10 @@ function setupZoom(imgElement) {
         const originX = (offsetX / rect.width) * 100;
         const originY = (offsetY / rect.height) * 100;
 
-        this.style.transformOrigin = `${originX}% ${originY}%`;
-        this.style.transform = this.style.transform === 'scale(2)' ? 'scale(1)' : 'scale(2)';
+
+        
+        this.style.transformOrigin = `${imgobj.x*100}% ${imgobj.y*100}%`;
+        this.style.transform = this.style.transform === 'scale(1)' ? 'scale(5)' : 'scale(1)';
     });
 }
 
