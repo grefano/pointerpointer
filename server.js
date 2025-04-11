@@ -22,9 +22,6 @@ app.get('/', (req, res) => {
     res.render('index.ejs')
 })
 
-function checkImage(file) {
-}
-
 app.use(express.json())
 
 
@@ -35,7 +32,7 @@ app.post('/api/img', (req, res) => {
         try {
             const files = await fs.promises.readdir(imagesUrl)
             const validFiles = []
-            //console.log(req.body)
+            console.log(JSON.stringify(req.body))
 
             for(const file of files){
                 //console.log('\n')
@@ -55,7 +52,7 @@ app.post('/api/img', (req, res) => {
                 
 
                 // mandando uma imagem aleatória
-                if (qtd < 3 && randomInt(100) < 30){
+                if (qtd < 5 && randomInt(100) < 30){
                     console.log(`qtd images sending ${qtd}`)
                     validFiles.push({
                         url: `/imgs/${file}`,

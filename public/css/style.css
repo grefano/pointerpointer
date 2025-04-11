@@ -41,21 +41,21 @@ img{
     
 }
 */
+
 .imgbox {
     width: 100vw;
     height: 100vh;
     overflow: hidden; /* ESSENCIAL para o zoom */
     position: relative;
 }
+/*
 .imgpointer{
-    object-fit: cover;
+    /*left: 0vw;
+    /*object-fit: cover;
     transition: transform 0.3s ease;
     position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
 }
+*/
 p {
     position: absolute;
     width: 100vw;
