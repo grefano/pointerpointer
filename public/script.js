@@ -20,9 +20,10 @@ async function getImg(){
         }
     })
     .then(response => response.json())
-    .then(imagens => {
+    .then(data => {
         console.log('response')
-        chooseImages(imagens)
+        console.log(data)
+        loadImages(data.images)
         
         
     })
@@ -32,90 +33,99 @@ async function getImg(){
     //return data
 }
 
+function getImageScaleDiff(img){
+    console.log('get image scale diff')
 
-getImg()
+    let vw = Math.max(document.documentElement.clientWidth || 0, window.innerWidth || 0)
+    let vh = Math.max(document.documentElement.clientHeight || 0, window.innerHeight || 0)
 
+    console.log(`w ${img.naturalWidth} h ${img.naturalHeight}`)
+    let scaleW = vw/img.naturalWidth
+    let scaleH = vh/img.naturalHeight
+    let scaleDiff = Math.abs(scaleW-scaleH)
 
-function chooseImages(images) {
+    return scaleDiff
+}
+
+function imagePushOrdered(img){
+    let orderedIndex = imgsOrdered.length
+    while(orderedIndex > 0 && imgsOrdered[orderedIndex-1].scaleDiff > img.scaleDiff){
+        orderedIndex--
+    }
+    imgsOrdered.splice(orderedIndex, 0, img)
+
+}
+
+async function loadImages(images) {
     imgsOrdered = []
-    images.forEach(image => {
-        img = new Image()
-        img.src = image.url
 
-        img.addEventListener('load', function(e){
-            let vw = Math.max(document.documentElement.clientWidth || 0, window.innerWidth || 0)
-            let vh = Math.max(document.documentElement.clientHeight || 0, window.innerHeight || 0)
-
-            console.log('chooseimages')
-            console.log(`w ${this.naturalWidth} h ${this.naturalHeight}`)
-            let scaleW = vw/this.naturalWidth
-            let scaleH = vh/this.naturalHeight
-            let scaleDiff = Math.abs(scaleW-scaleH)
-
-            let orderedIndex = imgsOrdered.length
-
-            while(orderedIndex > 0 && imgsOrdered[orderedIndex-1].scaleDiff > scaleDiff){
-                orderedIndex--
-            }
-            e.scaleDiff = scaleDiff
-            e.x = image.x
-            e.y = image.y
-            e.dir = image.dir
-            imgsOrdered.splice(orderedIndex, 0, e)
-            console.log(`loaded ${JSON.stringify(e)}`)
-            console.log(`ordered list ${imgsOrdered[0].x}`)
-            
-        })
-        img.addEventListener('error', function(){
-            console.log(`erro ao carregar ${image.url}`)
-        })
+    const resultados = await Promise.all(images.map(async (imageData) => {
         
         
+        return new Promise((resolve) => {
+            const _imgobj = new Image();
+            _imgobj.referrerPolicy = 'no-referrer';
+
+            _imgobj.onload = () => {
+                let _scalediff = getImageScaleDiff(_imgobj)
+                console.log(`on load scalediff ${_scalediff}`)
+                console.dir(_imgobj)
+                resolve({scaleDiff: _scalediff, imgData: {src: _imgobj.src, width: _imgobj.width, height: _imgobj.height}, originalData: imageData})
+            };
+            _imgobj.onerror = () => resolve({originalData: imageData});
+            _imgobj.src = imageData.url;
+            console.log(`bruh`)
+            console.dir(_imgobj)
+
+        })
+        //return {scaleDiff, img: imgProcessada, originalData: imageData}
+    }))
 
 
-    });
-    console.log(`imgsOrdered ${imgsOrdered}`)
+    resultados.forEach(resultado => {
+        if (resultado.scaleDiff){
+            console.log(`imagem carregou. resultado: ${JSON.stringify(resultado)}`)
+            imagePushOrdered(resultado)
+
+        } else {
+            console.log(`imagem não carregou. resultado: ${JSON.stringify(resultado)}`)
+        }
+
+    })
+
+    console.log(`images ordered ${imgsOrdered}`)
+    createImage(imgsOrdered[0])
+    return imgsOrdered
+
 }
 
 function createImage(image){
     console.log('createimg')
-    console.log(image)
-    
-    console.log(`width ${image.naturalWidth}; height ${image.naturalHeight} file ${image.url}`)
-    // passando info da imagem para o objeto
-    imgobj.width = image.naturalWidth
-    imgobj.height = image.naturalHeight
-    imgobj.x = image.x/100
-    imgobj.y = image.y/100
-    imgobj.dir = image.dir
-    
+    //console.log(image)
+
     // criando um elemento html com a imagem
     const el = document.createElement('img')
-    el.src = image.url
+    el.src = image.imgData.src
+    console.log(`el src ${image.imgData.src}`)
+
     el.className = 'imgpointer'
     container.appendChild(el)
 
-    setupZoom(el)
+    console.log('before setup zoom')
+    setupZoom(image, el)
 }
 
-function setupZoom(imgElement) {
+function setupZoom(imgObj, imgElement) {
     imgElement.addEventListener('mousedown', function(e) {
         let vw = Math.max(document.documentElement.clientWidth || 0, window.innerWidth || 0)
         let vh = Math.max(document.documentElement.clientHeight || 0, window.innerHeight || 0)
 
-
-        const rect = this.getBoundingClientRect();
-        const offsetX = e.clientX - rect.left;
-        const offsetY = e.clientY - rect.top;
-
-        const originX = (offsetX / rect.width) * 100;
-        const originY = (offsetY / rect.height) * 100;
-
-
-        
-        this.style.transformOrigin = `${imgobj.x*100}% ${imgobj.y*100}%`;
+        console.log('setup zoom')
+        console.log(imgElement)
+        this.style.transformOrigin = `${imgObj.originalData.y}% ${imgObj.originalData.y}%`;
         this.style.transform = this.style.transform === 'scale(1)' ? 'scale(5)' : 'scale(1)';
     });
 }
 
 
+getImg()

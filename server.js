@@ -53,7 +53,9 @@ app.post('/api/img', (req, res) => {
                     dir:    Number(fileValuesList[2])
                 }
                 
-                if (qtd < 1 && randomInt(100) < 30){
+
+                // mandando uma imagem aleatória
+                if (qtd < 3 && randomInt(100) < 30){
                     console.log(`qtd images sending ${qtd}`)
                     validFiles.push({
                         url: `/imgs/${file}`,
@@ -66,8 +68,11 @@ app.post('/api/img', (req, res) => {
 
                
             }
-
-            res.send(validFiles)
+            console.log(`check antes de enviar os dados ${validFiles} ${validFiles.length}`)
+            res.send({
+                images: validFiles,
+                qtdImages: validFiles.length
+            })
         } 
         catch (e){
             console.log('error image bosta')
