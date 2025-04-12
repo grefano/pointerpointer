@@ -6,14 +6,14 @@ const container = document.getElementsByClassName('imgbox')[0]
 let img = -1
 let imgsOrdered = []
 
-async function getImg(mousepos){
+async function getImg(mousepos, screen){
 
         console.log('getimg')
         console.log(`mousepos ${JSON.stringify(mousepos)}`)
         try {
             const response = await fetch('/api/img', {
                 method: "POST",
-                body: JSON.stringify(mousepos),
+                body: JSON.stringify({mousepos, screen}),
                 headers: {
                     'Content-Type': 'application/json'
                 }
@@ -110,24 +110,34 @@ function createImage(image){
     container.appendChild(el)
 
     console.log('before setup zoom')
-    //setupZoom(image, el)
+    setupZoom(image, el)
 }
 
-function positionImage(mousepos){
+function positionImage(mousepos, img){
     const el = document.getElementsByClassName('imgbox')[0]
     let left = mousepos.mousex - imgsOrdered[0].originalData.x*imgsOrdered[0].imgData.width/100
     let top = mousepos.mousey - imgsOrdered[0].originalData.y*imgsOrdered[0].imgData.height/100
     console.log(`position image element`)
     console.dir(el)
-    el.style.left = left+'px'
-    el.style.top = top+'px'
+    //el.style.left = left+'px'
+    //el.style.top = top+'px'
+    
+    const imgel = document.getElementsByClassName('imgpointer')[0]
+    console.log(`scale img html ${JSON.stringify(img)}`);
+    //imgel.addEventListener('mousedown', function(e){
+        console.log('evento iradooooo')
+        imgel.style.transformOrigin = `${0}% ${0}%`;
+        imgel.style.transform = 'translate(0, 0) scale(' + img.originalData.scale + ')'  
+        void imgel.offsetWidth;
+    //})
+    
 }
 
 function setupZoom(imgObj, imgElement) {
+    return
     //imgElement.style.top = '5vh'
     imgElement.addEventListener('mousedown', function(e) {
-        let vw = Math.max(document.documentElement.clientWidth || 0, window.innerWidth || 0)
-        let vh = Math.max(document.documentElement.clientHeight || 0, window.innerHeight || 0)
+
         console.log(e.clientX)
         console.log('setup zoom')
         console.log(JSON.stringify(imgObj.originalData))
@@ -140,8 +150,12 @@ function setupZoom(imgObj, imgElement) {
 
 container.addEventListener('mousedown', function(e){
     if (imgsOrdered.length > 0) return;
-    let mousepos = {mousex: e.clientX, mousey: e.clientY}
-    getImg(mousepos)
+
+    let mousepos = {x: e.clientX, y: e.clientY}
+    let vw = Math.max(document.documentElement.clientWidth || 0, window.innerWidth || 0)
+    let vh = Math.max(document.documentElement.clientHeight || 0, window.innerHeight || 0)
+    let screen = {width: vw, height: vh}
+    getImg(mousepos, screen)
     .then(response => {
         console.log(`resposta do getimg ${JSON.stringify(response)}`)
         return loadImages(response.images)
@@ -161,7 +175,7 @@ container.addEventListener('mousedown', function(e){
         })
 
         createImage(imgsOrdered[0])
-        positionImage(mousepos)
+        positionImage(mousepos, imgsOrdered[0])
 
     })
 
