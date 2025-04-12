@@ -83,7 +83,7 @@ async function loadImages(images) {
                 let _scalediff = getImageScaleDiff(_imgobj)
                 console.log(`on load scalediff ${_scalediff}`)
                 console.dir(_imgobj)
-                resolve({scaleDiff: _scalediff, imgData: {src: _imgobj.src, width: _imgobj.width, height: _imgobj.height}, originalData: imageData})
+                resolve({scaleDiff: _scalediff, src: _imgobj.src, width: _imgobj.width, height: _imgobj.height, ...imageData})
             };
             _imgobj.onerror = () => resolve({originalData: imageData});
             _imgobj.src = imageData.url;
@@ -103,8 +103,8 @@ function createImage(image){
 
     // criando um elemento html com a imagem
     const el = document.createElement('img')
-    el.src = image.imgData.src
-    console.log(`el src ${image.imgData.src}`)
+    el.src = image.src
+    console.log(`el src ${image.src}`)
 
     el.className = 'imgpointer'
     container.appendChild(el)
@@ -115,8 +115,8 @@ function createImage(image){
 
 function positionImage(mousepos, img){
     const el = document.getElementsByClassName('imgbox')[0]
-    let left = mousepos.mousex - imgsOrdered[0].originalData.x*imgsOrdered[0].imgData.width/100
-    let top = mousepos.mousey - imgsOrdered[0].originalData.y*imgsOrdered[0].imgData.height/100
+    let left = mousepos.mousex - imgsOrdered[0].x*imgsOrdered[0].width/100
+    let top = mousepos.mousey - imgsOrdered[0].y*imgsOrdered[0].height/100
     console.log(`position image element`)
     console.dir(el)
     //el.style.left = left+'px'
@@ -127,7 +127,9 @@ function positionImage(mousepos, img){
     //imgel.addEventListener('mousedown', function(e){
         console.log('evento iradooooo')
         imgel.style.transformOrigin = `${0}% ${0}%`;
-        imgel.style.transform = 'translate(0, 0) scale(' + img.originalData.scale + ')'  
+        imgel.style.transform = 'translate(0, 0) scale(' + img.scale + ')'  
+        imgel.style.left = img.posOffset.x+'px'
+        imgel.style.top = img.posOffset.y+'px'
         void imgel.offsetWidth;
     //})
     
@@ -141,7 +143,7 @@ function setupZoom(imgObj, imgElement) {
         console.log(e.clientX)
         console.log('setup zoom')
         console.log(JSON.stringify(imgObj.originalData))
-        this.style.transformOrigin = `${imgObj.originalData.x}% ${imgObj.originalData.y}%`;
+        this.style.transformOrigin = `${imgObj.x}% ${imgObj.y}%`;
         this.style.transform = this.style.transform === 'scale(1)' ? 'scale(2)' : 'scale(1)';
 
         //getImg({mousex: e.clientX, mousey: e.clientY})
@@ -152,9 +154,12 @@ container.addEventListener('mousedown', function(e){
     if (imgsOrdered.length > 0) return;
 
     let mousepos = {x: e.clientX, y: e.clientY}
-    let vw = Math.max(document.documentElement.clientWidth || 0, window.innerWidth || 0)
-    let vh = Math.max(document.documentElement.clientHeight || 0, window.innerHeight || 0)
-    let screen = {width: vw, height: vh}
+
+    let screen = {
+        width: Math.max(document.documentElement.clientWidth || 0, window.innerWidth || 0),
+        height: Math.max(document.documentElement.clientHeight || 0, window.innerHeight || 0)
+    }
+    
     getImg(mousepos, screen)
     .then(response => {
         console.log(`resposta do getimg ${JSON.stringify(response)}`)
@@ -173,9 +178,13 @@ container.addEventListener('mousedown', function(e){
             }
 
         })
-
-        createImage(imgsOrdered[0])
-        positionImage(mousepos, imgsOrdered[0])
+        let imgToCreate = imgsOrdered[0]
+        txt.innerText = 'aqui'
+        //console.log(`img to create ${imgToCreate.imageData}`)
+        txt.style.left = `${imgToCreate.x/100 * imgToCreate.width * imgToCreate.scale }px`
+        txt.style.top = `${imgToCreate.y/100 * imgToCreate.height * imgToCreate.scale }px`
+        createImage(imgToCreate)
+        positionImage(mousepos, imgToCreate)
 
     })
 

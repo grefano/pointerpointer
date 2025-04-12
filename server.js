@@ -8,6 +8,8 @@ import fs from 'fs'
 import path from 'path'
 import sharp from 'sharp'
 
+var doLog = false
+
 //app.use('/')
 app.use(express.static('public/'));
 
@@ -53,7 +55,7 @@ app.post('/api/img', (req, res) => {
                 //console.log(`image file ${file}`)
 
 
-                if (qtd < 7){
+                if (true){
                     
                     
 
@@ -77,7 +79,8 @@ app.post('/api/img', (req, res) => {
 
                 */
             }
-            console.log(`check antes de enviar os dados ${validFiles} ${validFiles.length}`)
+            
+            //console.log(`\n check antes de enviar os dados ${validFiles} ${validFiles.length} \n`)
             res.send({
                 images: validFiles,
                 qtdImages: validFiles.length
@@ -88,8 +91,10 @@ app.post('/api/img', (req, res) => {
             console.log(e)
             console.log(req.body)
         }
+        console.log('\n')
         validFiles.forEach(function (imgstruct, index){
-            console.log(`file ${imgstruct.file} ${index} diffPosRatio ${imgstruct.diffPosRatio} dist ${imgstruct.distMouseThumb}`)
+            //console.log(`imgfile ${JSON.stringify(imgstruct)}`)
+            //console.log(`file ${imgstruct.file} ${index} diffPosRatio ${imgstruct.diffPosRatio} dist ${imgstruct.distMouseThumb}`)
         })
     })();
 
@@ -100,50 +105,64 @@ app.post('/api/img', (req, res) => {
 app.listen(3000)
 
 
-async function imageGetDistanceThumbMouse(file, filevalues, filepath, reqbody){
-    console.log('\n --check is valid')
-    
+async function imageGetScaledResult(file, filevalues, filepath, reqbody){
+    //mylog('\n --check is valid')
+    doLog = (file == '79-91-94.png') 
+    mylog('\n')
     const imageDimensions = await getImageDimensions(filepath)
-    console.log(`image dimensions ${JSON.stringify(imageDimensions)}`)
-    console.log(`thumb x ${filevalues.x/100 * imageDimensions.width} thumb y ${filevalues.y/100 * imageDimensions.height}`)
-    console.log(`filevalues ${JSON.stringify(filevalues)} reqbody ${JSON.stringify(reqbody)}`)
+    //mylog(`image dimensions ${JSON.stringify(imageDimensions)}`)
+    //mylog(`thumb x ${filevalues.x/100 * imageDimensions.width} thumb y ${filevalues.y/100 * imageDimensions.height}`)
+    //mylog(`filevalues ${JSON.stringify(filevalues)} reqbody ${JSON.stringify(reqbody)}`)
 
-    console.log('\n')
     // redimensionar imagem até cobrir a tela toda
-    let scale = Math.min(reqbody.screen.width / imageDimensions.width, reqbody.screen.height / imageDimensions.height)
+    let scale = Math.max(reqbody.screen.width / imageDimensions.width, reqbody.screen.height / imageDimensions.height)
     let imgNewWidth = imageDimensions.width*scale
-    let imgNewHeight = imageDimensions.height*scale
-    console.log(`scale ${scale}. new dimensions: width ${imgNewWidth} height ${imgNewHeight}`)
+    let imgNewHeight = imageDimensions.height*scale    
+    mylog(`old dimensions: width ${imageDimensions.width} height ${imageDimensions.height}`)
+    mylog(`scale ${scale}. new dimensions: width ${imgNewWidth} height ${imgNewHeight}`)
     let imgNewThumbX = filevalues.x/100 * imgNewWidth
     let imgNewThumbY = filevalues.y/100 * imgNewHeight
-    console.log(`new thumb x ${imgNewThumbX} new thumb y ${imgNewThumbY}`)
+    //mylog(`new thumb x ${imgNewThumbX} new thumb y ${imgNewThumbY}`)
 
-    console.log('\n')
     // 
     let distX = reqbody.mousepos.x - imgNewThumbX
     let distY = reqbody.mousepos.y - imgNewThumbY
-    console.log(`distx ${distX} disty ${distY}`)
+    //mylog(`distx ${distX} disty ${distY}`)
 
     let diffW = imgNewWidth-reqbody.screen.width
     let diffH = imgNewHeight-reqbody.screen.height
-    console.log(`diffw ${diffW} diffh ${diffH}`)
+    //mylog(`diffw ${diffW} diffh ${diffH}`)
 
     // distancia possivel para mover imagem mantendo tela coberta e mouse o mais proximo do dedo
     let dispX = diffW > 0 ? clamp(distX, -diffW, 0) : 0
     let dispY = diffH > 0 ? clamp(distY, -diffH, 0) : 0
-    console.log(`dispX ${dispX} dispY ${dispY}`)
+    mylog(`dispX ${dispX} dispY ${dispY}`)
     imgNewThumbX += dispX
     imgNewThumbY += dispY
+    mylog(`mouse pos x ${reqbody.mousepos.x} y ${reqbody.mousepos.y}`)  
+    mylog(`thumb pos x ${imgNewThumbX} y ${imgNewThumbY}`)
+    // as duas posições estão certas
     distX = reqbody.mousepos.x - imgNewThumbX
     distY = reqbody.mousepos.y - imgNewThumbY
-    console.log(`final distX ${distX} distY ${distY}`)
-    //let thumbDirVectorX = filevalues.x
-    console.log(`${distX ** 2} - ${distY ** 2}`)
-    //let dotp = Math.atan2(distX, distY)
-    //console.log(dotp)
+    mylog(`final distX ${distX} distY ${distY}`)
 
+    // dedo aponta pro mouse
+    let angleThumbToMouse = Math.atan2(-distY, distX)
+    if (distX < 0) Math.PI-angleThumbToMouse
+
+    mylog(`dir thumb to mouse ${angleThumbToMouse*180/Math.PI}, thumb dir ${filevalues.dir}`)
+    let angleDiff = angleDegreeDifference(angleThumbToMouse*180/Math.PI, filevalues.dir)
     
-    return {distMouseThumb: Math.sqrt(Math.abs((distX ** 2) - (distY ** 2))), scale}
+    let angleDiffNormalized = Math.abs(Math.cos(angleDiff*Math.PI/180)-1)/2
+    
+    mylog(`file ${file} dotp ${angleDiffNormalized} `)
+
+    //let thumbDirVectorX = filevalues.x
+    mylog(`${distX ** 2} - ${distY ** 2}`)
+    //mylog(dotp)
+
+    doLog = true
+    return {distMouseThumb: Math.sqrt(Math.abs((distX ** 2) - (distY ** 2))), scale, angleDiffNormalized, posOffset: {x: dispX, y: dispY}}
 }
 
 async function imagePushValidFiles(arr, imgfile, filepath, filevalues, reqbody){
@@ -151,24 +170,25 @@ async function imagePushValidFiles(arr, imgfile, filepath, filevalues, reqbody){
     let mouseyratio = reqbody.mousepos.y / reqbody.screen.height
     let diffPosRatio = (mousexratio-filevalues.x/100) + (mouseyratio-filevalues.y/100)
 
-    let scaleAndPositionResult = await imageGetDistanceThumbMouse(imgfile, filevalues, filepath, reqbody)
+   
+    let scaleAndPositionResult = await imageGetScaledResult(imgfile, filevalues, filepath, reqbody)
 
 
     //let diffpos = (reqbody.mousepos.x+reqbody.mousepos.y) - (x/100*file.width+y/100*file.height)
+    if (scaleAndPositionResult.angleDiffNormalized > 0.01) return arr
 
     let orderedIndex = arr.length
     while(orderedIndex > 0 && Math.abs(arr[orderedIndex-1].distMouseThumb) > Math.abs(scaleAndPositionResult.distMouseThumb)){
         orderedIndex--
     }
-    console.log(`file ${imgfile} diff ${diffPosRatio} index ${orderedIndex} / ${arr.length}`)
+    //console.log(`file ${imgfile} diff ${diffPosRatio} index ${orderedIndex} / ${arr.length}`)
     arr.splice(orderedIndex, 0, {
         url: `/imgs/${imgfile}`,
         x: filevalues.x,
         y: filevalues.y,
         dir: filevalues.dir,
         diffPosRatio,
-        distMouseThumb: scaleAndPositionResult.distMouseThumb,
-        scale: scaleAndPositionResult.scale
+        ...scaleAndPositionResult
     })
 
     /*{
@@ -187,6 +207,25 @@ function clamp(num, lower, upper) {
     return Math.min(Math.max(num, lower), upper);
 }
 
+function angleDegreeDifference(angulo1, angulo2) {
+    // Normaliza os ângulos para o intervalo [0, 360)
+    angulo1 = ((angulo1 % 360) + 360) % 360;
+    angulo2 = ((angulo2 % 360) + 360) % 360;
+    
+    // Calcula a diferença direta e a diferença circular
+    let diferencaDireta = angulo1 - angulo2;
+    let diferencaCircular = diferencaDireta > 0 ? 
+        diferencaDireta - 360 : 
+        diferencaDireta + 360;
+    
+    // Retorna a diferença de menor módulo
+    return Math.abs(diferencaDireta) <= Math.abs(diferencaCircular) ? 
+        diferencaDireta : 
+        diferencaCircular;
+}
+
+
+
 
 async function getImageDimensions(filePath) {
     const metadata = await sharp(filePath).metadata()
@@ -195,4 +234,10 @@ async function getImageDimensions(filePath) {
         width: metadata.width,
         height: metadata.height
     }
+}
+
+function mylog(a){
+    if (!doLog) return
+
+    console.log(a)
 }

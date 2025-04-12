@@ -4,7 +4,7 @@ body {
     background-color: rgb(242, 242, 242);
     margin: 0;
     height: 100%;
-    /*overflow: hidden; */
+    overflow: hidden; 
 }
 /*
 img {
@@ -53,20 +53,21 @@ img{
 .imgpointer{
     object-fit: cover;
     /*transition: transform 0.3s ease;*/
-    position: relative;
+    position: relative; 
     top: 0;
     left: 0;
     right: 0;
     bottom: 0;
-
+ 
     will-change: transform;
     border: 2px solid red !important; 
 }
 p {
-    
+    margin: 0;
+    padding: 0;
     position: absolute;
-    width: 100vw;
-    text-align: center;
+    /*width: 100vw;
+    text-align: center;*/
 }
 /*
 .imgbox {
