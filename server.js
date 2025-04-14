@@ -5,7 +5,7 @@ const serverUrl = 'C:/Users/USUARIO/documents/code/expressjs'
 const imagesUrl = serverUrl+'/public/imgs/'
 
 import fs from 'fs'
-import path from 'path'
+import path, { parse } from 'path'
 import sharp from 'sharp'
 
 var doLog = false
@@ -29,8 +29,6 @@ app.use(express.json())
 // data
 app.post('/api/img', (req, res) => {
     (async ()=>{
-        let qtd = 0
-        
         try {
             const files = await fs.promises.readdir(imagesUrl)
             var validFiles = []
@@ -39,45 +37,15 @@ app.post('/api/img', (req, res) => {
             for(const file of files){
                 //console.log(`\n ${file.width}`)
                 const filePath = path.join(imagesUrl, file) 
-                const stat = await fs.promises.stat(filePath)
-
-
                 const fileName = path.parse(path.basename(filePath)).name
-                
                 
                 const fileValuesList = fileName.split("-")
                 const fileValues = {
                     x:      Number(fileValuesList[0]),
                     y:      Number(fileValuesList[1]),
                     dir:    Number(fileValuesList[2])
-                }
-                
-                //console.log(`image file ${file}`)
-
-
-                if (true){
-                    
-                    
-
-                    
-                    validFiles = await imagePushValidFiles(validFiles, file, filePath, fileValues, req.body)
-                    qtd++
-                    
-                }
-                // mandando uma imagem aleatória
-                /*
-                if (qtd < 5 && randomInt(100) < 30){
-                    console.log(`qtd images sending ${qtd}`)
-                    validFiles.push({
-                        url: `/imgs/${file}`,
-                        x: fileValues.x,
-                        y: fileValues.y,
-                        dir: fileValues.dir,
-                    })
-                    qtd++    
-                }
-
-                */
+                }       
+                validFiles = await imagePushValidFiles(validFiles, file, filePath, fileValues, req.body)
             }
             
             //console.log(`\n check antes de enviar os dados ${validFiles} ${validFiles.length} \n`)
@@ -91,10 +59,9 @@ app.post('/api/img', (req, res) => {
             console.log(e)
             console.log(req.body)
         }
-        console.log('\n')
+        console.log('\n -- valid files')
         validFiles.forEach(function (imgstruct, index){
-            //console.log(`imgfile ${JSON.stringify(imgstruct)}`)
-            //console.log(`file ${imgstruct.file} ${index} diffPosRatio ${imgstruct.diffPosRatio} dist ${imgstruct.distMouseThumb}`)
+            console.log(`${imgstruct.url} dist ${imgstruct.distMouseThumb} angtdiffN ${imgstruct.angleDiffNormalized}`)
         })
     })();
 
@@ -154,15 +121,18 @@ async function imageGetScaledResult(file, filevalues, filepath, reqbody){
     let angleDiff = angleDegreeDifference(angleThumbToMouse*180/Math.PI, filevalues.dir)
     
     let angleDiffNormalized = Math.abs(Math.cos(angleDiff*Math.PI/180)-1)/2
+    angleDiffNormalized = parseFloat(angleDiffNormalized).toFixed(4)
     
     mylog(`file ${file} dotp ${angleDiffNormalized} `)
 
     //let thumbDirVectorX = filevalues.x
     mylog(`${distX ** 2} - ${distY ** 2}`)
     //mylog(dotp)
+    let distMouseThumb = Math.sqrt(Math.abs((distX**2) - (distY**2))) 
+    distMouseThumb = parseFloat(distMouseThumb).toFixed(2)
 
     doLog = true
-    return {distMouseThumb: Math.sqrt(Math.abs((distX ** 2) - (distY ** 2))), scale, angleDiffNormalized, posOffset: {x: dispX, y: dispY}}
+    return {distMouseThumb, scale, angleDiffNormalized, posOffset: {x: dispX, y: dispY}}
 }
 
 async function imagePushValidFiles(arr, imgfile, filepath, filevalues, reqbody){
@@ -181,7 +151,7 @@ async function imagePushValidFiles(arr, imgfile, filepath, filevalues, reqbody){
     while(orderedIndex > 0 && Math.abs(arr[orderedIndex-1].distMouseThumb) > Math.abs(scaleAndPositionResult.distMouseThumb)){
         orderedIndex--
     }
-    //console.log(`file ${imgfile} diff ${diffPosRatio} index ${orderedIndex} / ${arr.length}`)
+    //console.log(`file ${imgfile} diff ${diffPosRatio} index ${orderedIn5dex} / ${arr.length}`)
     arr.splice(orderedIndex, 0, {
         url: `/imgs/${imgfile}`,
         x: filevalues.x,
@@ -190,19 +160,12 @@ async function imagePushValidFiles(arr, imgfile, filepath, filevalues, reqbody){
         diffPosRatio,
         ...scaleAndPositionResult
     })
-
-    /*{
-        url: `/imgs/${file}`,
-        x: fileValues.x,
-        y: fileValues.y,
-        dir: fileValues.dir,
-    })
-        */
-
     return arr
 
 }
 
+
+// hm
 function clamp(num, lower, upper) {
     return Math.min(Math.max(num, lower), upper);
 }

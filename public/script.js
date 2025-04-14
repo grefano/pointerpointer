@@ -1,6 +1,6 @@
 //const imgel = document.getElementById('imgpointer')
 const imgobj = {x:0, y:0, dir:0}
-const txt = document.getElementById('txtdebug')
+//const txt = document.getElementById('txtdebug')
 const container = document.getElementsByClassName('imgbox')[0]
 
 let img = -1
@@ -31,19 +31,7 @@ async function getImg(mousepos, screen){
             console.error('Error: ', error)
             throw error
         }
-        /*
-        .then(data => {
-            console.log(data)
-            loadImages(data.images)
-            
-            
-        })
-        .catch(error => console.log(error))
-        */
-    
-    
-    
-    //return data
+
 }
 
 function getImageScaleDiff(img){
@@ -60,14 +48,6 @@ function getImageScaleDiff(img){
     return scaleDiff
 }
 
-function imagePushOrdered(img){
-    let orderedIndex = imgsOrdered.length
-    while(orderedIndex > 0 && imgsOrdered[orderedIndex-1].scaleDiff > img.scaleDiff){
-        orderedIndex--
-    }
-    imgsOrdered.splice(orderedIndex, 0, img)
-
-}
 
 async function loadImages(images) {
     imgsOrdered = []
@@ -107,10 +87,12 @@ function createImage(image){
     console.log(`el src ${image.src}`)
 
     el.className = 'imgpointer'
+    //el.style.left = `${imgToCreate.x/100 * imgToCreate.width * imgToCreate.scale }px`
+    //el.style.top = `${imgToCreate.y/100 * imgToCreate.height * imgToCreate.scale }px`
     container.appendChild(el)
 
-    console.log('before setup zoom')
-    setupZoom(image, el)
+    console.log(`dist ${image.distMouseThumb}`)
+    //setupZoom(image, el)
 }
 
 function positionImage(mousepos, img){
@@ -135,21 +117,6 @@ function positionImage(mousepos, img){
     
 }
 
-function setupZoom(imgObj, imgElement) {
-    return
-    //imgElement.style.top = '5vh'
-    imgElement.addEventListener('mousedown', function(e) {
-
-        console.log(e.clientX)
-        console.log('setup zoom')
-        console.log(JSON.stringify(imgObj.originalData))
-        this.style.transformOrigin = `${imgObj.x}% ${imgObj.y}%`;
-        this.style.transform = this.style.transform === 'scale(1)' ? 'scale(2)' : 'scale(1)';
-
-        //getImg({mousex: e.clientX, mousey: e.clientY})
-    });
-}
-
 container.addEventListener('mousedown', function(e){
     if (imgsOrdered.length > 0) return;
 
@@ -171,18 +138,20 @@ container.addEventListener('mousedown', function(e){
         resultados.forEach(resultado => {
             if (resultado.scaleDiff){
                 console.log(`imagem carregou. resultado: ${JSON.stringify(resultado)}`)
-                imagePushOrdered(resultado)
-
+                imgsOrdered.push(resultado)
             } else {
                 console.log(`imagem não carregou. resultado: ${JSON.stringify(resultado)}`)
             }
 
         })
+        imgsOrdered.forEach(function(val, index){
+            console.log(`dist ${val.distMouseThumb}`)
+        })
         let imgToCreate = imgsOrdered[0]
-        txt.innerText = 'aqui'
+        //txt.innerText = 'aqui'
         //console.log(`img to create ${imgToCreate.imageData}`)
-        txt.style.left = `${imgToCreate.x/100 * imgToCreate.width * imgToCreate.scale }px`
-        txt.style.top = `${imgToCreate.y/100 * imgToCreate.height * imgToCreate.scale }px`
+        //txt.style.left = `${imgToCreate.x/100 * imgToCreate.width * imgToCreate.scale }px`
+        //txt.style.top = `${imgToCreate.y/100 * imgToCreate.height * imgToCreate.scale }px`
         createImage(imgToCreate)
         positionImage(mousepos, imgToCreate)
 
